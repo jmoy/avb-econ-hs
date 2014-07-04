@@ -1,4 +1,4 @@
-# Introduction
+## Introduction
 A Haskell implementation of the problem described
 in Aruoba-Villaverde's paper "A Comparison of Programming
 Languages in Economics" 
@@ -10,13 +10,13 @@ https://github.com/jesusfv/Comparison-Programming-Languages-Economics
 We use the Haskell library REPA for our arrays
 https://hackage.haskell.org/package/repa
 
-# Speed
+## Speed
 
 Right now own my maching the Haskell code compiled with GHC's LLVM 
 backend runs about three times slower than Auroba-Villaverde's C++ code
 compiled with GCC.
 
-# Building
+## Building
 
 The easiest way to build is using Cabal
 
@@ -31,7 +31,7 @@ To run the program
 
     cabal run
 
-# Contact
+## Contact
 
 Author: Jyotirmoy Bhattacharya, jyotirmoy@jyotirmoy.net
 
