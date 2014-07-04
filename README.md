@@ -1,6 +1,6 @@
 ## Introduction
 A Haskell implementation of the problem described
-in Aruoba-Villaverde's paper "A Comparison of Programming
+in Aruoba and Fernández-Villaverde's paper "A Comparison of Programming
 Languages in Economics" 
 http://economics.sas.upenn.edu/~jesusfv/comparison_languages.pdf
 
@@ -12,7 +12,7 @@ https://hackage.haskell.org/package/repa
 
 ## Speed
 
-Right now own my maching the Haskell code compiled with GHC's LLVM 
+Right now on my machine the Haskell code compiled with GHC's LLVM 
 backend runs about three times slower than Auroba-Villaverde's C++ code
 compiled with GCC.
 
