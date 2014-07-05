@@ -57,7 +57,7 @@ executable aruoba-villaverde
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.7, repa>=3.2, repa-algorithms>=3.2,vector>=0.10,stream-fusion>=0.1
+  build-depends:       base >=4.6 && <4.7, repa>=3.2, repa-algorithms>=3.2,vector>=0.10
   
   -- Directories containing source files.
   -- hs-source-dirs:      

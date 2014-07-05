@@ -117,17 +117,17 @@ consider.
 
 \begin{code}
 {-# INLINE findPeak #-}
-findPeak::(Int->Double)->[Int]->Int
+findPeak::(Int->Double)->[Int]->(Int,Double)
 findPeak _ [] = error "Empty argument to findPeak"
 findPeak keyfn (x:xs) = go (keyfn x) x xs
   where
     go !v !yp !l =  
       case l of
-        [] -> yp
+        [] -> (yp,v)
         (y:ys) -> 
           let ky = keyfn y in 
           case ky<=v of
-            True -> yp 
+            True -> (yp,v) 
             False ->  go ky y ys
 \end{code}
 
@@ -137,7 +137,7 @@ and productivity. We are passed a lower bound for
 the domain to search in the parameter \texttt{start}.
 
 \begin{code}
-policy::Int->Int->Int->Array U DIM2 Double->Int
+policy::Int->Int->Int->Array U DIM2 Double->(Int,Double)
 policy !cap !prod !start !evf = 
   findPeak fn [start..(nGridCapital-1)]
   where
@@ -151,13 +151,14 @@ for each level of capital at the point where the search
 for the previous level of capital succeeded.
 
 \begin{code}
-policies::Array U DIM2 Double->Int->[Int]
-policies !evf !prod = L.unfoldr next (0,0)
+policies::Array U DIM2 Double->Int->V.Vector (Double,Double)
+policies !evf !prod = V.fromList $ L.unfoldr next (0,0)
   where
-    next (!cap,!start) = if cap == nGridCapital then
-                            Nothing
-                         else Just (p,(cap+1,p))
-      where p = policy cap prod start evf
+    next (!cap,!start)|cap==nGridCapital = Nothing
+                      |otherwise = Just ((k,v),(cap+1,n))
+      where 
+        (n,v) = policy cap prod start evf
+        k = vGridCapital `unsafeIndex` (ix1 n)
 \end{code}
  
 \section{Value function iteration}
@@ -170,12 +171,9 @@ iterDP s = DPState {vf = nvf,pf =npf}
   where
     evf = mmultS (vf s) (transpose2S mTransition)
     ps = [0..(nGridProductivity-1)]
-    bestpol = V.concat $ P.map (V.fromList.policies evf) ps
-    nk' = R.transpose $ fromUnboxed (Z:.nGridProductivity:.nGridCapital) bestpol
-    npf = computeS (fromFunction (Z:.nGridCapital:.nGridProductivity)
-                    (\(Z:.i:.j) -> vGridCapital ! ix1 (nk' ! ix2 i j)))
-    nvf = computeS (fromFunction (Z:.nGridCapital:.nGridProductivity)
-                    (\(Z:.i:.j)->compute_vf evf i j (nk' ! (ix2 i j))))
+    (npf',nvf')= V.unzip $ V.concat $ P.map (policies evf) ps
+    npf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) npf'
+    nvf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) nvf'
           
 supdiff::Array U DIM2 Double->Array U DIM2 Double->Double
 supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
