@@ -2,7 +2,7 @@
 \begin{document}
 \section{Imports}
 \begin{code}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, ExplicitForAll #-}
 {-
 (c) Jyotirmoy Bhattacharya, 2014
 jyotirmoy@jyotirmoy.net
@@ -13,12 +13,14 @@ Licensed under GPL v3
 module Main where
 
 import Control.Monad
+import Control.Monad.ST
 import Data.Array.Repa as R
 import Data.Array.Repa.Algorithms.Matrix
 import Prelude as P
 import Text.Printf
 import Data.List as L
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as M
 
 ninfnty::Double
 ninfnty=read "-Infinity"
@@ -104,10 +106,10 @@ of the expected value function \texttt{evf} that is passed to us.
 compute_vf::Array U DIM2 Double->Int->Int->Int->Double
 compute_vf !evf !cap !prod !nxt = v
   where
-    y = mOutput ! (ix2 cap prod)
-    k' = vGridCapital ! (ix1 nxt)
+    y = mOutput `unsafeIndex` (ix2 cap prod)
+    k' = vGridCapital `unsafeIndex` (ix1 nxt)
     c = y - k'
-    ev = evf ! (ix2 nxt prod)
+    ev = evf `unsafeIndex` (ix2 nxt prod)
     v = (1-bbeta)*(log c)+bbeta*ev 
 \end{code}
  
@@ -151,14 +153,20 @@ for each level of capital at the point where the search
 for the previous level of capital succeeded.
 
 \begin{code}
-policies::Array U DIM2 Double->Int->V.Vector (Double,Double)
-policies !evf !prod = V.fromList $ L.unfoldr next (0,0)
+writePolicy::forall s. Array U DIM2 Double
+             -> M.MVector s (Double,Double)
+             -> Int
+             -> ST s ()
+writePolicy !evf mv !prod = update 0 0
   where
-    next (!cap,!start)|cap==nGridCapital = Nothing
-                      |otherwise = Just ((k,v),(cap+1,n))
-      where 
-        (n,v) = policy cap prod start evf
-        k = vGridCapital ! (ix1 n)
+    ix !i = i*nGridProductivity+prod
+    update !cap !start = do
+      let (n,v) = policy cap prod start evf
+      let k = vGridCapital `unsafeIndex` (ix1 n)
+      M.unsafeWrite mv (ix cap) (k,v)
+      case cap==(nGridCapital-1) of
+        True -> return ()
+        False ->update (cap+1) n 
 \end{code}
  
 \section{Value function iteration}
@@ -170,10 +178,13 @@ iterDP::DPState->DPState
 iterDP s = DPState {vf = nvf,pf =npf}
   where
     evf = mmultS (vf s) (transpose2S mTransition)
-    ps = [0..(nGridProductivity-1)]
-    (npf',nvf')= V.unzip $ V.concat $ P.map (policies evf) ps
-    npf = transpose2S $ fromUnboxed (Z:.nGridProductivity:.nGridCapital) npf'
-    nvf = transpose2S $ fromUnboxed (Z:.nGridProductivity:.nGridCapital) nvf'
+    bestpv = V.create $ do
+      v <- M.new (nGridCapital*nGridProductivity)
+      mapM_ (writePolicy evf v) [0..(nGridProductivity-1)]
+      return v
+    (npf',nvf')= V.unzip bestpv
+    npf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) npf'
+    nvf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) nvf'
           
 supdiff::Array U DIM2 Double->Array U DIM2 Double->Double
 supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
