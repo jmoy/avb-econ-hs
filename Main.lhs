@@ -104,10 +104,10 @@ of the expected value function \texttt{evf} that is passed to us.
 compute_vf::Array U DIM2 Double->Int->Int->Int->Double
 compute_vf !evf !cap !prod !nxt = v
   where
-    y = mOutput ! (ix2 cap prod)
-    k' = vGridCapital ! (ix1 nxt)
+    y = mOutput `unsafeIndex` (ix2 cap prod)
+    k' = vGridCapital `unsafeIndex` (ix1 nxt)
     c = y - k'
-    ev = evf ! (ix2 nxt prod)
+    ev = evf `unsafeIndex` (ix2 nxt prod)
     v = (1-bbeta)*(log c)+bbeta*ev 
 \end{code}
  
