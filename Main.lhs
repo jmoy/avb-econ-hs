@@ -121,12 +121,14 @@ findPeak::(Int->Double)->[Int]->Int
 findPeak _ [] = error "Empty argument to findPeak"
 findPeak keyfn (x:xs) = go (keyfn x) x xs
   where
-    go _ !l [] = l
-    go !v !l (y:ys) =  
-      let ky = keyfn y in
-        case ky<=v of
-          True -> l
-          False -> go ky y ys
+    go !v !yp !l =  
+      case l of
+        [] -> yp
+        (y:ys) -> 
+          let ky = keyfn y in 
+          case ky<=v of
+            True -> yp 
+            False ->  go ky y ys
 \end{code}
 
 
