@@ -7,8 +7,10 @@ http://economics.sas.upenn.edu/~jesusfv/comparison_languages.pdf
 The original code in various programming languages is at
 https://github.com/jesusfv/Comparison-Programming-Languages-Economics
 
-We use the Haskell library REPA for our arrays
+We use the Haskell library REPA and Data.Vector.Unboxed for our arrays
 https://hackage.haskell.org/package/repa
+The ST monad allows us to use mutable vectors in performance-critical
+parts while keeping the rest of the program mutation free.
 
 ## Speed
 
