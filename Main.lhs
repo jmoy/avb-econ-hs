@@ -222,13 +222,15 @@ main = do
     go::Int->DPState->IO()
     go !count !s = 
       let ns = iterDP s
-          d = supdiff (vf s) (vf ns) in
+          d = supdiff (vf s) (vf ns) 
+          putLog::IO()
+          putLog = printf "Iteration = %d, Sup Diff = %.6g\n" count d in
       if (d <tolerance) || (count>maxIter) then do
+        putLog
         printf "My check = %.6g\n" (pf ns ! ix2 999 2)
         --printvf (vf s)
       else do
-        when (count `mod` 10==0) $ do
-          printf "Iteration = %d, Sup Diff = %.6g\n" count d
+        when (count `mod` 10==0) putLog
         go (count+1) ns
 \end{code}
 \end{document}
