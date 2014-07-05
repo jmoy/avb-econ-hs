@@ -17,7 +17,7 @@ import Data.Array.Repa as R
 import Data.Array.Repa.Algorithms.Matrix
 import Prelude as P
 import Text.Printf
-import Data.List.Stream as S
+import Data.List as L
 import qualified Data.Vector.Unboxed as V
 
 ninfnty::Double
@@ -152,7 +152,7 @@ for the previous level of capital succeeded.
 
 \begin{code}
 policies::Array U DIM2 Double->Int->[Int]
-policies !evf !prod = S.unfoldr next (0,0)
+policies !evf !prod = L.unfoldr next (0,0)
   where
     next (!cap,!start) = if cap == nGridCapital then
                             Nothing
