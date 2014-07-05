@@ -18,7 +18,6 @@ import Data.Array.Repa as R
 import Data.Array.Repa.Algorithms.Matrix
 import Prelude as P
 import Text.Printf
-import Data.List as L
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as M
 
@@ -104,7 +103,7 @@ of the expected value function \texttt{evf} that is passed to us.
 \begin{code}
 {-# INLINE compute_vf #-}
 compute_vf::Array U DIM2 Double->Int->Int->Int->Double
-compute_vf !evf !cap !prod !nxt = v
+compute_vf evf cap prod nxt = v
   where
     y = mOutput `unsafeIndex` (ix2 cap prod)
     k' = vGridCapital `unsafeIndex` (ix1 nxt)
@@ -123,7 +122,7 @@ findPeak::(Int->Double)->[Int]->(Int,Double)
 findPeak _ [] = error "Empty argument to findPeak"
 findPeak keyfn (x:xs) = go (keyfn x) x xs
   where
-    go !v !yp !l =  
+    go !v !yp l =  
       case l of
         [] -> (yp,v)
         (y:ys) -> 
@@ -140,7 +139,7 @@ the domain to search in the parameter \texttt{start}.
 
 \begin{code}
 policy::Int->Int->Int->Array U DIM2 Double->(Int,Double)
-policy !cap !prod !start !evf = 
+policy cap prod start evf = 
   findPeak fn [start..(nGridCapital-1)]
   where
     fn nxt = compute_vf evf cap prod nxt 
@@ -157,10 +156,10 @@ writePolicy::forall s. Array U DIM2 Double
              -> M.MVector s (Double,Double)
              -> Int
              -> ST s ()
-writePolicy !evf mv !prod = update 0 0
+writePolicy evf mv prod = update 0 0
   where
-    ix !i = i*nGridProductivity+prod
-    update !cap !start = do
+    ix i = i*nGridProductivity+prod
+    update cap start = do
       let (n,v) = policy cap prod start evf
       let k = vGridCapital `unsafeIndex` (ix1 n)
       M.unsafeWrite mv (ix cap) (k,v)
@@ -196,7 +195,8 @@ supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
 initstate::DPState
 initstate = DPState {vf=z,pf=z}
   where
-    z = computeS $ fromFunction (Z:.nGridCapital:.nGridProductivity) (const 0.0)
+    z = fromUnboxed (Z:.nGridCapital:.nGridProductivity) v 
+    v = V.replicate (nGridCapital*nGridProductivity) 0.0
     
 printvf::Array U DIM2 Double->IO()
 printvf v = mapM_ go [(i,j)|i<-[0,100..(nGridCapital-1)],
