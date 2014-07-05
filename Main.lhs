@@ -104,10 +104,10 @@ of the expected value function \texttt{evf} that is passed to us.
 compute_vf::Array U DIM2 Double->Int->Int->Int->Double
 compute_vf !evf !cap !prod !nxt = v
   where
-    y = mOutput `unsafeIndex` (ix2 cap prod)
-    k' = vGridCapital `unsafeIndex` (ix1 nxt)
+    y = mOutput ! (ix2 cap prod)
+    k' = vGridCapital ! (ix1 nxt)
     c = y - k'
-    ev = evf `unsafeIndex` (ix2 nxt prod)
+    ev = evf ! (ix2 nxt prod)
     v = (1-bbeta)*(log c)+bbeta*ev 
 \end{code}
  
@@ -158,7 +158,7 @@ policies !evf !prod = V.fromList $ L.unfoldr next (0,0)
                       |otherwise = Just ((k,v),(cap+1,n))
       where 
         (n,v) = policy cap prod start evf
-        k = vGridCapital `unsafeIndex` (ix1 n)
+        k = vGridCapital ! (ix1 n)
 \end{code}
  
 \section{Value function iteration}
@@ -172,8 +172,8 @@ iterDP s = DPState {vf = nvf,pf =npf}
     evf = mmultS (vf s) (transpose2S mTransition)
     ps = [0..(nGridProductivity-1)]
     (npf',nvf')= V.unzip $ V.concat $ P.map (policies evf) ps
-    npf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) npf'
-    nvf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) nvf'
+    npf = transpose2S $ fromUnboxed (Z:.nGridProductivity:.nGridCapital) npf'
+    nvf = transpose2S $ fromUnboxed (Z:.nGridProductivity:.nGridCapital) nvf'
           
 supdiff::Array U DIM2 Double->Array U DIM2 Double->Double
 supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
@@ -214,8 +214,10 @@ main = do
           d = supdiff (vf s) (vf ns) in
       if (d <tolerance) || (count>maxIter) then do
         printf "My check = %.6g\n" (pf ns ! ix2 999 2)
+        --printvf (vf s)
       else do
-        when (count `mod` 10==0) $ printf "Iteration = %d, Sup Diff = %.6g\n" count d
+        when (count `mod` 10==0) $ do
+          printf "Iteration = %d, Sup Diff = %.6g\n" count d
         go (count+1) ns
 \end{code}
 \end{document}

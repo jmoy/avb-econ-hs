@@ -13,7 +13,7 @@ https://hackage.haskell.org/package/repa
 ## Speed
 
 Right now on my machine the Haskell code compiled with GHC's LLVM 
-backend runs about two times slower than Auroba-Villaverde's C++ code
+backend runs about three times slower than Auroba-Villaverde's C++ code
 compiled with GCC.
 
 ## Building
