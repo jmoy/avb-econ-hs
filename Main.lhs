@@ -117,15 +117,16 @@ It is passed the function itself, and the points in its domain to
 consider.
 
 \begin{code}
+
 {-# INLINE findPeak #-}
 findPeak::(Int->Double)         -- function by which indices are ranked
           ->Int                 -- starting index for search
           ->Int                 -- 1+the last index to be searched
           ->(Int,Double)        -- the index at which the function peaks
-findPeak keyfn start end = go (keyfn start) start end
+findPeak keyfn start end = go (keyfn start) start
   where
-    go !v !s !e =  
-      if s==e then
+    go !v !s  =  
+      if s==end then
         (s,v)
       else 
         let ns = (s+1)
@@ -133,7 +134,8 @@ findPeak keyfn start end = go (keyfn start) start end
         if ky<=v then
           (s,v)
         else
-          go ky ns e
+          go ky ns
+
 \end{code}
 
 
