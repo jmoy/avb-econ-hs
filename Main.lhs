@@ -118,18 +118,22 @@ consider.
 
 \begin{code}
 {-# INLINE findPeak #-}
-findPeak::(Int->Double)->[Int]->(Int,Double)
-findPeak _ [] = error "Empty argument to findPeak"
-findPeak keyfn (x:xs) = go (keyfn x) x xs
+findPeak::(Int->Double)         -- function by which indices are ranked
+          ->Int                 -- starting index for search
+          ->Int                 -- 1+the last index to be searched
+          ->(Int,Double)        -- the index at which the function peaks
+findPeak keyfn start end = go (keyfn start) start end
   where
-    go !v !yp l =  
-      case l of
-        [] -> (yp,v)
-        (y:ys) -> 
-          let ky = keyfn y in 
-          case ky<=v of
-            True -> (yp,v) 
-            False ->  go ky y ys
+    go !v !s !e =  
+      if s==e then
+        (s,v)
+      else 
+        let ns = (s+1)
+            ky = keyfn ns in 
+        if ky<=v then
+          (s,v)
+        else
+          go ky ns e
 \end{code}
 
 
@@ -138,11 +142,13 @@ and productivity. We are passed a lower bound for
 the domain to search in the parameter \texttt{start}.
 
 \begin{code}
+
 policy::Int->Int->Int->Array U DIM2 Double->(Int,Double)
 policy cap prod start evf = 
-  findPeak fn [start..(nGridCapital-1)]
+  findPeak fn start nGridCapital
   where
     fn nxt = compute_vf evf cap prod nxt 
+
 \end{code}
 
 Find the best policies for each level of capital for a 
