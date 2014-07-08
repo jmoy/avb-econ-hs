@@ -15,7 +15,7 @@ parts while keeping the rest of the program mutation free.
 ## Speed
 
 Right now on my machine the Haskell code compiled with GHC's LLVM 
-backend runs about two times slower than Auroba-Villaverde's C++ code
+backend takes about 80% more time than Auroba-Villaverde's C++ code
 compiled with GCC.
 
 ## Building

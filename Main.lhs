@@ -11,6 +11,7 @@ Licensed under GPL v3
 -}
 
 module Main where
+import Kernel
 
 import Control.Monad
 import Control.Monad.ST
@@ -20,136 +21,6 @@ import Prelude as P
 import Text.Printf
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as M
-
-ninfnty::Double
-ninfnty=read "-Infinity"
-\end{code}
-\section{Parameters}
-
-\begin{code}
-
-aalpha::Double
-aalpha = (1.0/3.0)     --Elasticity of output w.r.t. capital
-
-bbeta::Double
-bbeta  = 0.95    -- Discount factor
-
--- Productivity values
-vProductivity::Array U DIM1 Double
-vProductivity = fromListUnboxed (ix1 $ P.length l) l
-  where
-    l = [0.9792, 0.9896, 1.0000, 1.0106, 1.0212]
-
--- Transition matrix
-mTransition::Array U DIM2 Double
-mTransition   = fromListUnboxed (ix2 5 5) (
-  [0.9727, 0.0273, 0.0000, 0.0000, 0.0000,
-   0.0041, 0.9806, 0.0153, 0.0000, 0.0000,
-   0.0000, 0.0082, 0.9837, 0.0082, 0.0000,
-   0.0000, 0.0000, 0.0153, 0.9806, 0.0041,
-   0.0000, 0.0000, 0.0000, 0.0273, 0.9727])
-
-\end{code}
-
-\section{Steady State}
-
-\begin{code}
-
-capitalSteadyState::Double
-capitalSteadyState = (aalpha*bbeta)**(1/(1-aalpha))
-
-outputSteadyState::Double
-outputSteadyState = capitalSteadyState**aalpha
-
-consumptionSteadyState::Double
-consumptionSteadyState = outputSteadyState-capitalSteadyState               
-nGridCapital::Int
-nGridCapital = 17800
-\end{code}
-
-\section{Working variables}
-
-We generate the grid of capital.
-
-\begin{code}
-vGridCapital::Array U DIM1 Double
-vGridCapital = fromUnboxed (ix1 nGridCapital) vec
-               where
-                 start = 0.5*capitalSteadyState
-                 step = capitalSteadyState/(fromIntegral nGridCapital)
-                 vec = V.enumFromStepN start step nGridCapital
-
-nGridProductivity::Int
-(Z:.nGridProductivity) = extent vProductivity
-\end{code}
- 
-We pre-build output for each point in the grid.
-
-\begin{code}
-mOutput::Array U DIM2 Double
-mOutput = computeS $ (R.zipWith f xK xP)
-  where
-    f !k !p = (k**aalpha) * p
-    xK = extend (Z:.All:.nGridProductivity) vGridCapital
-    xP = extend (Z:.nGridCapital:.All) vProductivity
-\end{code}
-
-\section{Maximization}
-
-Compute the value function given the level of this period's 
-capital, productivity and next period's capital. We make use
-of the expected value function \texttt{evf} that is passed to us.
-
-\begin{code}
-{-# INLINE compute_vf #-}
-compute_vf::Array U DIM2 Double->Int->Int->Int->Double
-compute_vf evf cap prod nxt = v
-  where
-    y = mOutput `unsafeIndex` (ix2 cap prod)
-    k' = vGridCapital `unsafeIndex` (ix1 nxt)
-    c = y - k'
-    ev = evf `unsafeIndex` (ix2 nxt prod)
-    v = (1-bbeta)*(log c)+bbeta*ev 
-\end{code}
- 
-A helper function to compute the peak of a single-peaked function.
-It is passed the function itself, and the points in its domain to
-consider.
-
-\begin{code}
-
-{-# INLINE findPeak #-}
-findPeak::(Int->Double)         -- function by which indices are ranked
-          ->Int                 -- starting index for search
-          ->Int                 -- 1+the last index to be searched
-          ->(Int,Double)        -- the index at which the function peaks
-findPeak keyfn start end = go (keyfn start) start
-  where
-    go !v !s  =  
-      if s==end then
-        (s,v)
-      else 
-        let ns = (s+1)
-            ky = keyfn ns in 
-        if ky<=v then
-          (s,v)
-        else
-          go ky ns
-
-\end{code}
-
-
-Find the best policy for for a cerain stock of capital
-and productivity. We are passed a lower bound for
-the domain to search in the parameter \texttt{start}.
-
-\begin{code}
-
-policy::Int->Int->Int->Array U DIM2 Double->(Int,Double)
-policy cap prod start evf = 
-  findPeak fn start nGridCapital
-  where
-    fn nxt = compute_vf evf cap prod nxt 
 
 \end{code}
 
@@ -169,7 +40,7 @@ writePolicy evf mv prod = update 0 0
     ix i = i*nGridProductivity+prod
     update cap start = do
       let (n,v) = policy cap prod start evf
-      let k = vGridCapital `unsafeIndex` (ix1 n)
+      let k = vGridCapital `V.unsafeIndex` n
       M.unsafeWrite mv (ix cap) (k,v)
       case cap==(nGridCapital-1) of
         True -> return ()
@@ -211,8 +82,8 @@ printvf v = mapM_ go [(i,j)|i<-[0,100..(nGridCapital-1)],
                        j<-[0..(nGridProductivity-1)]]
   where
     go (i,j) = (printf "%g\t%g\t%g\n" 
-                (vGridCapital ! (ix1 i))
-                (vProductivity ! (ix1 j))
+                (vGridCapital V.! i)
+                (vProductivity V.! j)
                 (v ! (Z:.i:.j)))
                
 
