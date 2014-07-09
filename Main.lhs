@@ -224,16 +224,6 @@ initstate = DPState {vf=z,pf=z}
     z = fromUnboxed (Z:.nGridCapital:.nGridProductivity) v 
     v = V.replicate (nGridCapital*nGridProductivity) 0.0
     
-printvf::Array U DIM2 Double->IO()
-printvf v = mapM_ go [(i,j)|i<-[0,100..(nGridCapital-1)],
-                       j<-[0..(nGridProductivity-1)]]
-  where
-    go (i,j) = (printf "%g\t%g\t%g\n" 
-                (vGridCapital V.! i)
-                (vProductivity V.! j)
-                (v ! (Z:.i:.j)))
-               
-
 tolerance::Double
 tolerance = 1e-7
 
@@ -255,7 +245,6 @@ main = do
       if (d <tolerance) || (count>maxIter) then do
         putLog
         printf "My check = %.6g\n" (pf ns ! ix2 999 2)
-        --printvf (vf s)
       else do
         when (count `mod` 10==0) putLog
         go (count+1) ns
