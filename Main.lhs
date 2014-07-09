@@ -195,13 +195,13 @@ writePolicy evf mv prod = loop 0 0
  
 \section{Value function iteration}
 \begin{code}
-data DPState = DPState {vf::Array U DIM2 Double,
-                        pf::Array U DIM2 Double}
-               
-iterDP::DPState->DPState
-iterDP s = DPState {vf = nvf,pf =npf}
+
+iterDP::Array U DIM2 Double     --the old value function
+        ->(Array U DIM2 Double, --the new value function
+           Array U DIM2 Double)   --the new policy function
+iterDP !vf = (nvf,npf)
   where
-    evf = mmultS (vf s) (transpose2S mTransition)
+    evf = mmultS vf (transpose2S mTransition)
     bestpv = V.create $ do
       v <- M.new (nGridCapital*nGridProductivity)
       mapM_ (writePolicy evf v) [0..(nGridProductivity-1)]
@@ -217,11 +217,11 @@ supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
 
 \section{Drivers}
 \begin{code}
-initstate::DPState
-initstate = DPState {vf=z,pf=z}
+initstate::Array U DIM2 Double
+initstate
+  = fromUnboxed (Z:.nGridCapital:.nGridProductivity) zeros
   where
-    z = fromUnboxed (Z:.nGridCapital:.nGridProductivity) v 
-    v = V.replicate (nGridCapital*nGridProductivity) 0.0
+    zeros = V.replicate (nGridCapital*nGridProductivity) 0.0
     
 tolerance::Double
 tolerance = 1e-7
@@ -235,17 +235,17 @@ main = do
   _ <- printf "Output = %.6g, Capital = %.6g, Consumption = %.6g\n" outputSteadyState capitalSteadyState consumptionSteadyState
   go 1 initstate
   where
-    go::Int->DPState->IO()
-    go !count !s = 
-      let ns = iterDP s
-          d = supdiff (vf s) (vf ns) 
+    go::Int->Array U DIM2 Double->IO()
+    go !count !vf = 
+      let (nvf,npf) = iterDP vf
+          d = supdiff vf nvf 
           putLog::IO()
           putLog = printf "Iteration = %d, Sup Diff = %.6g\n" count d in
       if (d <tolerance) || (count>maxIter) then do
         putLog
-        printf "My check = %.6g\n" (pf ns ! ix2 999 2)
+        printf "My check = %.6g\n" (npf ! ix2 999 2)
       else do
         when (count `mod` 10==0) putLog
-        go (count+1) ns
+        go (count+1) nvf
 \end{code}
 \end{document}
