@@ -126,7 +126,8 @@ findPeak keyfn start end = go (keyfn start) start
       if s==end then
         (s-1,v)
       else 
-        let ky = keyfn ns in 
+        let ns = s+1 
+            ky = keyfn ns in 
         if ky<=v then
           (s,v)
         else
