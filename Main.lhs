@@ -7,7 +7,7 @@
 {- (c) Jyotirmoy Bhattacharya, 2014, jyotirmoy@@jyotirmoy.net -}
 {- Licensed under GPL v3 -}
 
-module Main where
+module Main (main) where
 
 import Control.Monad
 import Control.Monad.ST
@@ -21,7 +21,6 @@ import qualified Data.Vector.Unboxed.Mutable as M
 \end{code}
 
 \section{Parameters}
-
 \begin{code}
 
 ninfnty::Double
@@ -72,18 +71,19 @@ nGridProductivity = V.length vProductivity
 \end{code}
 
 We precompute output for all capital and productivity levels.
-
 \begin{code}
 
 mOutput::Array U DIM2 Double
 mOutput = computeS $ fromFunction (ix2 nGridCapital nGridProductivity) fn
   where
-    fn (Z:.i:.j) = ((vGridCapital `V.unsafeIndex` i)**aalpha) * (vProductivity `V.unsafeIndex` j)
+    fn (Z:.i:.j) = (k**aalpha)*p
+      where
+        k = vGridCapital `V.unsafeIndex` i  
+        p = vProductivity `V.unsafeIndex` j
 
 \end{code}
 
 \section{Optimization}
-
 \subsection{The value function}
 
 \begin{code}
@@ -107,7 +107,6 @@ compute_vf evf cap prod nxt = v
 \end{code}
 
 \subsection{Maximization}
-
 Given a function over integers and an integer range,
 find the maximum of the function assuming that it is
 single-peaked.
@@ -127,17 +126,15 @@ findPeak keyfn start end = go (keyfn start) start
       if s==end then
         (s-1,v)
       else 
-        let ns = (s+1)
-            ky = keyfn ns in 
+        let ky = keyfn ns in 
         if ky<=v then
           (s,v)
         else
-          go ky ns
+          go ky (s+1)
 
 \end{code}
 
 \subsection{Policies}
-
 Find the optimal policy for a given level of capital and productivity.
 
 \begin{code}
@@ -160,18 +157,19 @@ policy cap prod start evf =
 Find the best policies for each level of capital for a 
 given level of productivity. 
 
-We make use of the 
-monotonicity of the policy function to begin our search
-for each level of capital at the point where the search
-for the previous level of capital succeeded.
+We make use of the monotonicity of the policy function to
+begin our search for each level of capital at the point
+where the search for the previous level of capital
+succeeded.
 
-The results are stored in a mutable vector. The use of a mutable 
-vector here is essential for good performance since the answers
-are generated for one value of productivity at a time whereas
-the final policy and value function are indexed by the level of 
-capital first. So using immutable vectors not only incurs the cost
-of memory allocation and copying but also the cost of doing something
-equivalent to a transpose.
+The results are stored in a mutable vector. The use of a
+mutable vector here is essential for good performance since
+the answers are generated for one value of productivity at a
+time whereas the final policy and value function are indexed
+by the level of capital first. So using immutable vectors
+not only incurs the cost of memory allocation and copying
+but also the cost of doing something equivalent to a
+transpose.
 
 \begin{code}
 
