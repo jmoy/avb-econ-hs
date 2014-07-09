@@ -96,13 +96,13 @@ compute_vf::Array U DIM2 Double -- The expected value function
             ->Int               -- Index of this period's productivity
             ->Int               -- Index of next period's capital
             ->Double            -- Value
-compute_vf evf cap prod nxt = v
+compute_vf evf cap prod nxt 
+  = (1-bbeta)*(log c)+bbeta*ev
   where
     y = mOutput `unsafeIndex` (ix2 cap prod)
     k' = vGridCapital `V.unsafeIndex` nxt
     c = y - k'
     ev = evf `unsafeIndex` (ix2 nxt prod)
-    v = (1-bbeta)*(log c)+bbeta*ev 
 
 \end{code}
 
