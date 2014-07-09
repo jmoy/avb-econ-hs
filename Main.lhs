@@ -243,6 +243,7 @@ maxIter=1000
 
 main::IO()
 main = do
+  _ <- printf "Output = %.6g, Capital = %.6g, Consumption = %.6g\n" outputSteadyState capitalSteadyState consumptionSteadyState
   go 1 initstate
   where
     go::Int->DPState->IO()
