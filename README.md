@@ -25,9 +25,14 @@ The easiest way to build is using Cabal
     cabal install --only-dependencies
     cabal build
 
-will build the package. Our default configuration uses GHC's LLVM
-backend. If you do not have LLVM installed edit the '.cabal' file 
-to remove the option '-fllvm'.
+will build the package. 
+
+Our default configuration uses GHC's LLVM
+backend. If you do not have LLVM installed run
+
+    cabal configure -f-llvm
+
+before building.
 
 To run the program
 
