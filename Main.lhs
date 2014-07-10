@@ -182,17 +182,15 @@ writePolicy::forall s. Array U DIM2 Double      -- Expected value function
                                                 --  matrix in row-major order
              -> Int                             -- Index of productivity.
              -> ST s ()
-writePolicy evf mv prod = update 0 0
+writePolicy evf mv prod = loop 0 0
   where
     ix i = i*nGridProductivity+prod
-    update cap start = do
+    loop cap _ | cap==nGridCapital = return()
+    loop cap start = do
       let (n,v) = policy cap prod start evf
       let k = vGridCapital `V.unsafeIndex` n
       M.unsafeWrite mv (ix cap) (k,v)
-      if cap==(nGridCapital-1) then
-        return ()
-      else
-        update (cap+1) n 
+      loop (cap+1) n 
 \end{code}
  
 \section{Value function iteration}
