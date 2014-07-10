@@ -189,9 +189,10 @@ writePolicy evf mv prod = update 0 0
       let (n,v) = policy cap prod start evf
       let k = vGridCapital `V.unsafeIndex` n
       M.unsafeWrite mv (ix cap) (k,v)
-      case cap==(nGridCapital-1) of
-        True -> return ()
-        False ->update (cap+1) n 
+      if cap==(nGridCapital-1) then
+        return ()
+      else
+        update (cap+1) n 
 \end{code}
  
 \section{Value function iteration}
