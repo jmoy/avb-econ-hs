@@ -122,16 +122,17 @@ findPeak::(Int->Double)         -- function by which indices are ranked
                                 --   peak
 findPeak keyfn start end = go (keyfn start) start
   where
-    go !v !s  =  
-      if s==end then
-        (s-1,v)
+    go !oldv !olds  =  
+      if olds==end-1 then
+        (olds,oldv)
       else 
-        let ns = s+1 
-            ky = keyfn ns in 
-        if ky<=v then
-          (s,v)
+        let 
+          news = olds+1
+          newv = keyfn news in 
+        if newv<=oldv then
+          (olds,oldv)
         else
-          go ky (s+1)
+          go newv news
 
 \end{code}
 
