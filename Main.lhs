@@ -2,6 +2,7 @@
 %include polycode.fmt
 \begin{document}
 \section{Imports}
+
 \begin{code}
 {-# LANGUAGE BangPatterns, ExplicitForAll #-}
 {- (c) Jyotirmoy Bhattacharya, 2014, jyotirmoy@@jyotirmoy.net -}
@@ -20,30 +21,37 @@ import qualified Data.Vector.Unboxed.Mutable as M
 
 \end{code}
 
-\section{Parameters}
-\begin{code}
+\sector{Type Definitions}
 
+\begin{code}
+type Vector = V.Vector Double
+type Matrix = Array U DIM2 Double
+\end{code}
+
+\section{Parameters}
+
+\begin{code}
 ninfnty::Double
 ninfnty=read "-Infinity"
 
 aalpha::Double
-aalpha = (1.0/3.0)     --Elasticity of output w.r.t. capital
+aalpha = (1.0/3.0)     -- Elasticity of output w.r.t. capital
 
 bbeta::Double
-bbeta  = 0.95    -- Discount factor
+bbeta  = 0.95          -- Discount factor
 
-vProductivity::V.Vector Double
+vProductivity::Vector
 vProductivity = V.fromList l
   where
     l = [0.9792, 0.9896, 1.0000, 1.0106, 1.0212]
 
-mTransition::Array U DIM2 Double
-mTransition   = fromListUnboxed (ix2 5 5) (
+mTransition::Matrix
+mTransition   = fromListUnboxed (ix2 5 5) 
   [0.9727, 0.0273, 0.0000, 0.0000, 0.0000,
    0.0041, 0.9806, 0.0153, 0.0000, 0.0000,
    0.0000, 0.0082, 0.9837, 0.0082, 0.0000,
    0.0000, 0.0000, 0.0153, 0.9806, 0.0041,
-   0.0000, 0.0000, 0.0000, 0.0273, 0.9727])
+   0.0000, 0.0000, 0.0000, 0.0273, 0.9727]
 
 
 capitalSteadyState::Double
@@ -58,61 +66,65 @@ consumptionSteadyState = outputSteadyState-capitalSteadyState
 nGridCapital::Int
 nGridCapital = 17800
 
-vGridCapital::V.Vector Double
+vGridCapital::Vector
 vGridCapital = vec
-               where
-                 start = 0.5*capitalSteadyState
-                 step = capitalSteadyState/(fromIntegral nGridCapital)
-                 vec = V.enumFromStepN start step nGridCapital
+  where
+    start = 0.5*capitalSteadyState
+    step = capitalSteadyState/(fromIntegral nGridCapital)
+    vec = V.enumFromStepN start step nGridCapital
 
 nGridProductivity::Int
 nGridProductivity = V.length vProductivity
+\end{code}
 
+All the two-dimensional matrices we build have \texttt{nGridCapital}
+rows and \texttt{nGridProductivity} columns.
+
+\begin{code}
+matShape::DIM2
+matShape = ix2 nGridCapital nGridProductivity
 \end{code}
 
 We precompute output for all capital and productivity levels.
-\begin{code}
 
-mOutput::Array U DIM2 Double
-mOutput = computeS $ fromFunction (ix2 nGridCapital nGridProductivity) fn
+\begin{code}
+mOutput::Matrix
+mOutput = computeS $ fromFunction matShape fn
   where
     fn (Z:.i:.j) = (k**aalpha)*p
       where
         k = vGridCapital `V.unsafeIndex` i  
         p = vProductivity `V.unsafeIndex` j
-
 \end{code}
 
 \section{Optimization}
 \subsection{The value function}
 
 \begin{code}
-
-{-# INLINE compute_vf #-}
-compute_vf::Array U DIM2 Double -- The expected value function
-                                --  indexed by capital stock and
-                                --  and previous period's productivity        
-            ->Int               -- Index of this period's capital
-            ->Int               -- Index of this period's productivity
-            ->Int               -- Index of next period's capital
-            ->Double            -- Value
-compute_vf evf cap prod nxt 
+{-# INLINE computeVf #-}
+computeVf::Matrix       -- The expected value function
+                        --  indexed by capital stock and
+                        --  and previous period's productivity        
+           ->Int        -- Index of this period's capital
+           ->Int        -- Index of this period's productivity
+           ->Int        -- Index of next period's capital
+           ->Double     -- Value
+computeVf evf cap prod nxt 
   = (1-bbeta)*(log c)+bbeta*ev
   where
     y = mOutput `unsafeIndex` (ix2 cap prod)
     k' = vGridCapital `V.unsafeIndex` nxt
     c = y - k'
     ev = evf `unsafeIndex` (ix2 nxt prod)
-
 \end{code}
 
 \subsection{Maximization}
+
 Given a function over integers and an integer range,
 find the maximum of the function assuming that it is
 single-peaked.
 
 \begin{code}
-
 {-# INLINE findPeak #-}
 findPeak::(Int->Double)         -- function by which indices are ranked
           ->Int                 -- starting index for search
@@ -133,27 +145,25 @@ findPeak keyfn start end = go (keyfn start) start
           (olds,oldv)
         else
           go newv news
-
 \end{code}
 
 \subsection{Policies}
+
 Find the optimal policy for a given level of capital and productivity.
 
 \begin{code}
-
 policy::Int                     -- Index of capital stock
         ->Int                   -- Index of productivity
         ->Int                   -- Index of next period's capital from
                                 --  where to start search
-        ->Array U DIM2 Double   -- Expected value function
+        ->Matrix                -- Expected value function
         ->(Int,Double)          -- Index of optimal value of next
                                 --  period's capital and the corresponding
                                 --  value of the value function
 policy cap prod start evf = 
   findPeak fn start nGridCapital
   where
-    fn nxt = compute_vf evf cap prod nxt 
-
+    fn nxt = computeVf evf cap prod nxt 
 \end{code}
 
 Find the best policies for each level of capital for a 
@@ -174,8 +184,7 @@ but also the cost of doing something equivalent to a
 transpose.
 
 \begin{code}
-
-writePolicy::forall s. Array U DIM2 Double      -- Expected value function
+writePolicy::forall s. Matrix                   -- Expected value function
              -> M.MVector s (Double,Double)     -- Vector to store optimal
                                                 --  values and policies, it is
                                                 --  actuall a 
@@ -195,11 +204,11 @@ writePolicy evf mv prod = loop 0 0
 \end{code}
  
 \section{Value function iteration}
-\begin{code}
 
-iterDP::Array U DIM2 Double     --the old value function
-        ->(Array U DIM2 Double, --the new value function
-           Array U DIM2 Double)   --the new policy function
+\begin{code}
+iterDP::Matrix          --the old value function
+        ->(Matrix,      --the new value function
+           Matrix)      --the new policy function
 iterDP !vf = (nvf,npf)
   where
     evf = mmultS vf (transpose2S mTransition)
@@ -208,19 +217,19 @@ iterDP !vf = (nvf,npf)
       mapM_ (writePolicy evf v) [0..(nGridProductivity-1)]
       return v
     (npf',nvf')= V.unzip bestpv
-    npf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) npf'
-    nvf = fromUnboxed (Z:.nGridCapital:.nGridProductivity) nvf'
+    npf = fromUnboxed matShape npf'
+    nvf = fromUnboxed matShape nvf'
           
-supdiff::Array U DIM2 Double->Array U DIM2 Double->Double
+supdiff::Matrix->Matrix->Double
 supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
- 
 \end{code}
 
 \section{Drivers}
+
 \begin{code}
-initstate::Array U DIM2 Double
+initstate::Matrix
 initstate
-  = fromUnboxed (Z:.nGridCapital:.nGridProductivity) zeros
+  = fromUnboxed matShape zeros
   where
     zeros = V.replicate (nGridCapital*nGridProductivity) 0.0
     
@@ -233,15 +242,18 @@ maxIter=1000
 
 main::IO()
 main = do
-  _ <- printf "Output = %.6g, Capital = %.6g, Consumption = %.6g\n" outputSteadyState capitalSteadyState consumptionSteadyState
+  _ <- printf "Output = %.6g, Capital = %.6g, Consumption = %.6g\n" 
+       outputSteadyState capitalSteadyState consumptionSteadyState
   go 1 initstate
   where
-    go::Int->Array U DIM2 Double->IO()
+    go::Int->Matrix->IO()
     go !count !vf = 
       let (nvf,npf) = iterDP vf
           d = supdiff vf nvf 
           putLog::IO()
-          putLog = printf "Iteration = %d, Sup Diff = %.6g\n" count d in
+          putLog = printf "Iteration = %d, Sup Diff = %.6g\n" 
+                   count d 
+      in
       if (d <tolerance) || (count>maxIter) then do
         putLog
         printf "My check = %.6g\n" (npf ! ix2 999 2)
