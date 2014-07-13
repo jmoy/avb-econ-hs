@@ -21,7 +21,7 @@ import qualified Data.Vector.Unboxed.Mutable as M
 
 \end{code}
 
-\sector{Type Definitions}
+\section{Type Definitions}
 
 \begin{code}
 type Vector = V.Vector Double
