@@ -149,23 +149,6 @@ findPeak keyfn start end = go (keyfn start) start
 
 \subsection{Policies}
 
-Find the optimal policy for a given level of capital and productivity.
-
-\begin{code}
-policy::Int                     -- Index of capital stock
-        ->Int                   -- Index of productivity
-        ->Int                   -- Index of next period's capital from
-                                --  where to start search
-        ->Matrix                -- Expected value function
-        ->(Int,Double)          -- Index of optimal value of next
-                                --  period's capital and the corresponding
-                                --  value of the value function
-policy cap prod start evf = 
-  findPeak fn start nGridCapital
-  where
-    fn nxt = computeVf evf cap prod nxt 
-\end{code}
-
 Find the best policies for each level of capital for a 
 given level of productivity. 
 
@@ -195,9 +178,13 @@ writePolicy::forall s. Matrix                   -- Expected value function
 writePolicy evf mv prod = loop 0 0
   where
     ix i = i*nGridProductivity+prod
+
+    policy cap start
+      = findPeak (computeVf evf cap prod) start nGridCapital
+
     loop cap _ | cap==nGridCapital = return()
     loop cap start = do
-      let (n,v) = policy cap prod start evf
+      let (n,v) = policy cap start
       let k = vGridCapital `V.unsafeIndex` n
       M.unsafeWrite mv (ix cap) (k,v)
       loop (cap+1) n 
