@@ -125,24 +125,29 @@ find the maximum of the function assuming that it is
 single-peaked.
 
 \begin{code}
+
+data SearchResult = SearchResult
+                    {-# UNPACK #-} !Int
+                    {-# UNPACK #-} !Double
+                    
 {-# INLINE findPeak #-}
 findPeak::(Int->Double)         -- function by which indices are ranked
           ->Int                 -- starting index for search
           ->Int                 -- 1+the last index to be searched
-          ->(Int,Double)        -- the index at which the function peaks
+          ->SearchResult        -- the index at which the function peaks
                                 --   and the value fo the function at the
                                 --   peak
 findPeak keyfn start end = go (keyfn start) start
   where
     go !oldv !olds  =  
       if olds==end-1 then
-        (olds,oldv)
+        SearchResult olds oldv
       else 
         let 
           news = olds+1
           newv = keyfn news in 
         if newv<=oldv then
-          (olds,oldv)
+          SearchResult olds oldv
         else
           go newv news
 \end{code}
@@ -184,7 +189,7 @@ writePolicy evf mv prod = loop 0 0
 
     loop cap _ | cap==nGridCapital = return()
     loop cap start = do
-      let (n,v) = policy cap start
+      let (SearchResult n v) = policy cap start
       let k = vGridCapital `V.unsafeIndex` n
       M.unsafeWrite mv (ix cap) (k,v)
       loop (cap+1) n 
@@ -231,7 +236,7 @@ main::IO()
 main = do
   _ <- printf "Output = %.6g, Capital = %.6g, Consumption = %.6g\n" 
        outputSteadyState capitalSteadyState consumptionSteadyState
-  go 1 initstate
+  mOutput `deepSeqArray` go 1 initstate
   where
     go::Int->Matrix->IO()
     go !count !vf = 
