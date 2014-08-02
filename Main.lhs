@@ -31,9 +31,6 @@ type Matrix = Array U DIM2 Double
 \section{Parameters}
 
 \begin{code}
-ninfnty::Double
-ninfnty=read "-Infinity"
-
 aalpha::Double
 aalpha = (1.0/3.0)     -- Elasticity of output w.r.t. capital
 
@@ -213,7 +210,7 @@ iterDP !vf = (nvf,npf)
     nvf = fromUnboxed matShape nvf'
           
 supdiff::Matrix->Matrix->Double
-supdiff v1 v2 = foldAllS max ninfnty $ R.map abs (v1 -^ v2)
+supdiff v1 v2 = foldAllS max (-1.0/0) $ R.map abs (v1 -^ v2)
 \end{code}
 
 \section{Drivers}
