@@ -210,7 +210,7 @@ iterDP !vf = (nvf,npf)
     nvf = fromUnboxed matShape nvf'
           
 supdiff::Matrix->Matrix->Double
-supdiff v1 v2 = foldAllS max (-1.0/0) $ R.map abs (v1 -^ v2)
+supdiff v1 v2 = foldAllS max (-1.0) $ R.map abs (v1 -^ v2)
 \end{code}
 
 \section{Drivers}
