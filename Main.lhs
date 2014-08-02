@@ -4,7 +4,7 @@
 \section{Imports}
 
 \begin{code}
-{-# LANGUAGE BangPatterns, ExplicitForAll #-}
+{-# LANGUAGE BangPatterns, ExplicitForAll,OverloadedStrings #-}
 {- (c) Jyotirmoy Bhattacharya, 2014, jyotirmoy@@jyotirmoy.net -}
 {- Licensed under GPL v3 -}
 
@@ -15,7 +15,7 @@ import Control.Monad.ST
 import Data.Array.Repa as R
 import Data.Array.Repa.Algorithms.Matrix
 import Prelude as P
-import Text.Printf
+import Data.Text.Format as F
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as M
 
@@ -231,21 +231,22 @@ maxIter=1000
 
 main::IO()
 main = do
-  _ <- printf "Output = %.6g, Capital = %.6g, Consumption = %.6g\n" 
-       outputSteadyState capitalSteadyState consumptionSteadyState
+  F.print "Output = {}, Capital = {}, Consumption = {}\n" 
+       ((expt 6 outputSteadyState),
+       (expt 6 capitalSteadyState),
+       (expt 5 consumptionSteadyState))
   mOutput `deepSeqArray` go 1 initstate
   where
     go::Int->Matrix->IO()
     go !count !vf = 
       let (nvf,npf) = iterDP vf
           d = supdiff vf nvf 
-          putLog::IO()
-          putLog = printf "Iteration = %d, Sup Diff = %.6g\n" 
-                   count d 
+          putLog = F.print "Iteration = {}, Sup Diff = {}\n" 
+                   (count, (expt 6 d))
       in
       if (d <tolerance) || (count>maxIter) then do
         putLog
-        printf "My check = %.6g\n" (npf ! ix2 999 2)
+        F.print "My check = {}\n" $ Only (expt 6 (npf ! ix2 999 2))
       else do
         when (count `mod` 10==0) putLog
         go (count+1) nvf
