@@ -202,7 +202,7 @@ iterDP !vf = (nvf,npf)
   where
     evf = mmultS vf (transpose2S mTransition)
     bestpv = V.create $ do
-      v <- M.new (nGridCapital*nGridProductivity)
+      v <- M.unsafeNew (nGridCapital*nGridProductivity)
       mapM_ (writePolicy evf v) [0..(nGridProductivity-1)]
       return v
     (npf',nvf')= V.unzip bestpv
