@@ -117,28 +117,29 @@ computeVf evf cap prod nxt
 
 \subsection{Maximization}
 
-Given a function over integers and an integer range,
+Given a function on an enumerable domain
+and a non-empty interval in its domain,
 find the maximum of the function assuming that it is
 single-peaked.
 
 \begin{code}
                 
 {-# INLINE findPeak #-}
-findPeak::Ord a =>
-          (Int->a)                 -- function by which indices are ranked
-          ->Int                 -- starting index for search
-          ->Int                 -- 1+the last index to be searched
-          ->(Int,a)             -- the index at which the function peaks
+findPeak::(Enum d, Eq d, Ord r) =>
+          (d->r)                -- function by which indices are ranked
+          ->d                   -- starting index for search
+          ->d                   -- the last index to be searched
+          ->(d,r)               -- the index at which the function peaks
                                 --   and the value fo the function at the
                                 --   peak
 findPeak keyfn start end = go (keyfn start) start
   where
     go !oldv !olds  =  
-      if olds==end-1 then
+      if olds==end then
         (olds,oldv)
       else 
         let 
-          news = olds+1
+          news = succ olds
           newv = keyfn news in 
         if newv<=oldv then
           (olds,oldv)
@@ -179,7 +180,7 @@ writePolicy evf mv prod = loop 0 0
     ix i = i*nGridProductivity+prod
 
     policy cap start
-      = findPeak (computeVf evf cap prod) start nGridCapital
+      = findPeak (computeVf evf cap prod) start (nGridCapital-1)
 
     loop cap _ | cap==nGridCapital = return()
     loop cap start = do
