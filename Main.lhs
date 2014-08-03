@@ -122,29 +122,26 @@ find the maximum of the function assuming that it is
 single-peaked.
 
 \begin{code}
-
-data SearchResult = SearchResult
-                    {-# UNPACK #-} !Int
-                    {-# UNPACK #-} !Double
-                    
+                
 {-# INLINE findPeak #-}
-findPeak::(Int->Double)         -- function by which indices are ranked
+findPeak::Ord a =>
+          (Int->a)                 -- function by which indices are ranked
           ->Int                 -- starting index for search
           ->Int                 -- 1+the last index to be searched
-          ->SearchResult        -- the index at which the function peaks
+          ->(Int,a)             -- the index at which the function peaks
                                 --   and the value fo the function at the
                                 --   peak
 findPeak keyfn start end = go (keyfn start) start
   where
     go !oldv !olds  =  
       if olds==end-1 then
-        SearchResult olds oldv
+        (olds,oldv)
       else 
         let 
           news = olds+1
           newv = keyfn news in 
         if newv<=oldv then
-          SearchResult olds oldv
+          (olds,oldv)
         else
           go newv news
 \end{code}
@@ -186,7 +183,7 @@ writePolicy evf mv prod = loop 0 0
 
     loop cap _ | cap==nGridCapital = return()
     loop cap start = do
-      let (SearchResult n v) = policy cap start
+      let (n,v) = policy cap start
       let k = vGridCapital `V.unsafeIndex` n
       M.unsafeWrite mv (ix cap) (k,v)
       loop (cap+1) n 
@@ -198,7 +195,7 @@ writePolicy evf mv prod = loop 0 0
 iterDP::Matrix          --the old value function
         ->(Matrix,      --the new value function
            Matrix)      --the new policy function
-iterDP !vf = (nvf,npf)
+iterDP vf = (nvf,npf)
   where
     evf = mmultS vf (transpose2S mTransition)
     bestpv = V.create $ do
@@ -233,12 +230,12 @@ main::IO()
 main = do
   F.print "Output = {}, Capital = {}, Consumption = {}\n" 
        ((expt 6 outputSteadyState),
-       (expt 6 capitalSteadyState),
-       (expt 5 consumptionSteadyState))
-  mOutput `deepSeqArray` go 1 initstate
+        (expt 6 capitalSteadyState),
+        (expt 5 consumptionSteadyState))
+  go 1 initstate
   where
     go::Int->Matrix->IO()
-    go !count !vf = 
+    go count vf = 
       let (nvf,npf) = iterDP vf
           d = supdiff vf nvf 
           putLog = F.print "Iteration = {}, Sup Diff = {}\n" 
