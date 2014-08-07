@@ -4,7 +4,7 @@
 \section{Imports}
 
 \begin{code}
-{-# LANGUAGE BangPatterns, ExplicitForAll,OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 {- (c) Jyotirmoy Bhattacharya, 2014, jyotirmoy@@jyotirmoy.net -}
 {- Licensed under GPL v3 -}
 
@@ -167,7 +167,7 @@ but also the cost of doing something equivalent to a
 transpose.
 
 \begin{code}
-writePolicy::forall s. Matrix                   -- Expected value function
+writePolicy::Matrix                             -- Expected value function
              -> M.MVector s (Double,Double)     -- Vector to store optimal
                                                 --  values and policies, it is
                                                 --  actuall a 
